@@ -1,35 +1,30 @@
 import os
 import logging
-import sys
-
-# خدعة برمجية لتجاهل imghdr تماماً ومنع الخطأ
-sys.modules['imghdr'] = type('dummy', (object,), {'what': lambda *a: None})
-
-from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 # إعداد السجل
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
-def start(update, context):
-    update.message.reply_text('أهلاً بك في بوت التحميل الخاص بنور الدين!')
+async def start(update, context):
+    await update.message.reply_text('أهلاً بك في بوت التحميل الخاص بنور الدين! جاهز للعمل.')
 
-def echo(update, context):
-    update.message.reply_text('جاري التحميل...')
+async def echo(update, context):
+    await update.message.reply_text('تم استلام الرابط، جاري المعالجة...')
 
 def main():
     token = os.environ.get("BOT_TOKEN")
     if not token:
+        print("BOT_TOKEN غير موجود في المتغيرات!")
         return
-        
-    updater = Updater(token, use_context=True)
-    dp = updater.dispatcher
+
+    # إنشاء التطبيق بالطريقة الحديثة
+    app = Application.builder().token(token).build()
     
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
     
-    updater.start_polling()
-    updater.idle()
+    print("البوت يعمل الآن...")
+    app.run_polling()
 
 if __name__ == '__main__':
     main()
