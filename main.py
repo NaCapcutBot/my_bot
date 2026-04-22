@@ -7,7 +7,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 logging.basicConfig(level=logging.INFO)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text('أهلاً بك! أرسل رابط الفيديو من تيك توك أو إنستجرام وسأقوم بتحميله لك.')
+    await update.message.reply_text('أهلاً بك في Na Downloader! أرسل رابط الفيديو من تيك توك أو إنستجرام وسأقوم بتحميله لك.')
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = update.message.text
