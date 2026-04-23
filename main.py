@@ -1,46 +1,69 @@
 import os
 import logging
 import yt_dlp
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
+# إعدادات البوت
 logging.basicConfig(level=logging.INFO)
-
 CHANNEL_USERNAME = "@na_capcut" 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     welcome_text = (
         "🚀 **أهلاً بك في بوت نور الدين للتحميل | Na Capcut**\n\n"
-        "لتحميل الفيديوهات، يجب أن تكون مشتركاً في القناة أولاً! ✨\n\n"
-        f"👉 اشترك هنا: {CHANNEL_USERNAME}\n\n"
-        "بعد الاشتراك أرسل الرابط مباشرة! ⚡"
+        "أنا مساعدك الشخصي لتحميل الفيديوهات والصور من تيك توك، إنستجرام، وبنتريست بدون علامة مائية! ✨\n\n"
+        "📌 **خطوات التحميل:**\n"
+        "1. اشترك في القناة الرسمية.\n"
+        "2. أرسل رابط الفيديو أو الصورة مباشرة.\n\n"
+        "استمتع بالخدمة! ⚡"
     )
-    await update.message.reply_text(welcome_text, parse_mode='Markdown')
+    keyboard = [
+        [InlineKeyboardButton("📢 اشترك في القناة", url=f"https://t.me/{CHANNEL_USERNAME.replace('@', '')}")],
+        [InlineKeyboardButton("👨‍💻 تواصل مع المطور", url="https://t.me/nacapcut")]
+    ]
+    await update.message.reply_text(welcome_text, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
+    url = update.message.text
+    
+    # التحقق من الاشتراك
     try:
-        # فحص الاشتراك
         member = await context.bot.get_chat_member(chat_id=CHANNEL_USERNAME, user_id=user_id)
         if member.status in ['left', 'kicked']:
-            await update.message.reply_text(f'⚠️ **عذراً، يجب أن تشترك في القناة أولاً:**\n{CHANNEL_USERNAME}')
+            keyboard = [
+                [InlineKeyboardButton("📢 اشترك في القناة للتحميل", url=f"https://t.me/{CHANNEL_USERNAME.replace('@', '')}")],
+                [InlineKeyboardButton("👨‍💻 تواصل مع المطور", url="https://t.me/nacapcut")]
+            ]
+            await update.message.reply_text('⚠️ **عذراً، يجب أن تشترك في القناة أولاً:**', reply_markup=InlineKeyboardMarkup(keyboard))
             return
-    except:
-        await update.message.reply_text('⚠️ **خطأ:** يرجى التأكد من إضافة البوت كمشرف في القناة.')
+    except Exception:
+        await update.message.reply_text('⚠️ **خطأ:** تأكد أن البوت مشرف في القناة.')
         return
 
-    # إذا وصل لهنا فهو مشترك
-    url = update.message.text
+    # التحميل
     status_msg = await update.message.reply_text('⏳ **جاري التحميل...**')
     try:
-        ydl_opts = {'format': 'best', 'outtmpl': 'video.mp4'}
+        ydl_opts = {'format': 'best', 'outtmpl': 'downloaded_file.%(ext)s'}
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
-        await update.message.reply_video(video=open('video.mp4', 'rb'))
-        os.remove('video.mp4')
+            info = ydl.extract_info(url, download=True)
+            filename = ydl.prepare_filename(info)
+        
+        keyboard = [
+            [InlineKeyboardButton("🚀 المزيد عبر Na Downloader", url="https://t.me/Na_Downloader_bot")],
+            [InlineKeyboardButton("👨‍💻 تواصل مع المطور", url="https://t.me/nacapcut")]
+        ]
+        
+        # إرسال الملف (صورة أو فيديو)
+        if filename.endswith(('.jpg', '.png', '.jpeg')):
+            await update.message.reply_photo(photo=open(filename, 'rb'), reply_markup=InlineKeyboardMarkup(keyboard))
+        else:
+            await update.message.reply_video(video=open(filename, 'rb'), reply_markup=InlineKeyboardMarkup(keyboard))
+        
+        os.remove(filename)
         await status_msg.delete()
-    except:
-        await status_msg.edit_text('❌ **لم أتمكن من تحميل الرابط.**')
+    except Exception:
+        await status_msg.edit_text('❌ **لم أتمكن من تحميل الرابط.**\n(تأكد أنه رابط مباشر من تيك توك، إنستجرام أو بنتريست).')
 
 def main():
     token = os.environ.get("BOT_TOKEN")
