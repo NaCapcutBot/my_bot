@@ -27,7 +27,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     url = update.message.text
     
-    # التحقق من الاشتراك
+    # 1. التحقق من الاشتراك
     try:
         member = await context.bot.get_chat_member(chat_id=CHANNEL_USERNAME, user_id=user_id)
         if member.status in ['left', 'kicked']:
@@ -41,16 +41,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text('⚠️ **خطأ:** تأكد أن البوت مشرف في القناة.')
         return
 
-    # التحميل
-    status_msg = await update.message.reply_text('⏳ **جاري التحميل...**')
+    # 2. التحميل
+    status_msg = await update.message.reply_text('⏳ **جاري التحميل من سيرفر نور الدين...**')
     try:
-        ydl_opts = {'format': 'best', 'outtmpl': 'downloaded_file.%(ext)s'}
+        ydl_opts = {
+            'format': 'best', 
+            'outtmpl': 'downloaded_file.%(ext)s',
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
         
+        # الأزرار (رابط مجموعتك)
         keyboard = [
-            [InlineKeyboardButton("🚀 المزيد عبر Na Downloader", url="https://t.me/Na_Downloader_bot")],
+            [InlineKeyboardButton("🎨 انضم لمجموعة عالم المصممين", url="https://t.me/+Ls1IhPFuY2lhOTY8")],
             [InlineKeyboardButton("👨‍💻 تواصل مع المطور", url="https://t.me/nacapcut")]
         ]
         
@@ -63,7 +68,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         os.remove(filename)
         await status_msg.delete()
     except Exception:
-        await status_msg.edit_text('❌ **لم أتمكن من تحميل الرابط.**\n(تأكد أنه رابط مباشر من تيك توك، إنستجرام أو بنتريست).')
+        await status_msg.edit_text('❌ **تعذر التحميل.**\nتأكد أن الرابط عام وليس خاصاً.')
 
 def main():
     token = os.environ.get("BOT_TOKEN")
