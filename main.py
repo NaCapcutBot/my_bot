@@ -37,7 +37,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # تمت الإضافة: دالة تحديث الإحصائيات
 async def update_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    MY_ID = 123456789  # <--- ضع الـ ID الخاص بك هنا
+    MY_ID = 942901613  # <--- ضع الـ ID الخاص بك هنا
     if update.message.from_user.id == MY_ID:
         with open("users.txt", "r") as f:
             count = len(f.readlines())
