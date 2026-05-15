@@ -1,7 +1,7 @@
 import os
 import logging
 import yt_dlp
-import uuid
+import random, string
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
@@ -24,51 +24,57 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if user_id not in f.read().splitlines():
             f.write(user_id + "\n")
     welcome_text = (
-        "🚀 **أهلاً بك في بوت التحميل | Na Capcut**\n\n"
-        "أرسل رابط لأي فيديو تيك توك أو انستجرام أو بنترست أو يوتيوب وسيتم تحميله مباشرة! ✨\n\n"
-        "📌 **برجاء الاشتراك في القناة لاستمرار الخدمة:**"
+        "🚀 **أهلاً بك في بوت نور الدين للتحميل | Na Capcut**\n\n"
+        "أنا مساعدك الشخصي لتحميل فيديوهات التيك توك والإنستجرام بجودة عالية وبدون علامة مائية! ✨\n\n"
+        "📌 **خطوة واحدة للبدء:**\n"
+        "لضمان استمرار الخدمة، يرجى الاشتراك في القناة الرسمية.\n\n"
+        "بعد الاشتراك، أرسل الرابط فقط واستمتع بالتحميل! ⚡"
     )
-    await update.message.reply_text(
-        welcome_text,
-        parse_mode='Markdown',
-        reply_markup=get_main_keyboard()
-    )
+    await update.message.reply_text(welcome_text, parse_mode='Markdown', reply_markup=get_main_keyboard())
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     try:
         member = await context.bot.get_chat_member(chat_id=CHANNEL_USERNAME, user_id=user_id)
         if member.status in ['left', 'kicked']:
-            await update.message.reply_text(f'⚠️ **يجب عليك الاشتراك في القناة:**\n{CHANNEL_USERNAME}', reply_markup=get_main_keyboard())
+            await update.message.reply_text(f'⚠️ **عذراً، يجب أن تكون مشتركاً في القناة أولاً:**\n{CHANNEL_USERNAME}', reply_markup=get_main_keyboard())
             return
-    except Exception:
-        await update.message.reply_text('⚠️ **خطأ:** يجب وضع البوت كمشرف في القناة.', reply_markup=get_main_keyboard())
+    except Exception as e:
+        await update.message.reply_text('⚠️ **خطأ:** يرجى التأكد من إضافة البوت مشرف في القناة.')
         return
 
-    url = update.message.text
-    if url.startswith('/'):
-        return
+    url = update.message.text.strip()
+    if url.startswith('/'): return
 
-    status_msg = await update.message.reply_text('⏳ **جاري التحميل... انتظر.**')
-    filename = f"video_{uuid.uuid4().hex}.mp4"
-    ydl_opts = {
-        'format': 'best',
-        'outtmpl': filename,
-        'user_agent': 'Mozilla/5.0'
-    }
+    status_msg = await update.message.reply_text('⏳ **جاري التحميل... يرجى الانتظار!**')
+    # اسم ملف عشوائي
+    rnd = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+    filename = f'video_{rnd}.mp4'
     try:
+        ydl_opts = {'format': 'best[ext=mp4]/best', 'outtmpl': filename, 'user_agent': 'Mozilla/5.0'}
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
+
+        # تحقق من حجم الملف (تيليجرام حد 2GB)
+        file_size = os.path.getsize(filename)
+        if file_size > 2*1024*1024*1024:
+            await status_msg.edit_text("❌ الفيديو أكبر من الحد المسموح في تيليجرام (2GB).")
+            os.remove(filename)
+            return
+
         await update.message.reply_video(video=open(filename, 'rb'), reply_markup=get_main_keyboard())
         await status_msg.delete()
-        os.remove(filename)
     except Exception as e:
-        await status_msg.edit_text('❌ **تعذر التحميل. تأكد أن الرابط صحيح وصيغة الفيديو مدعومة!**', reply_markup=get_main_keyboard())
+        await status_msg.edit_text(f'❌ **عذراً، تعذر التحميل.**\nتفاصيل: {e}', reply_markup=get_main_keyboard())
+    finally:
         if os.path.exists(filename):
             os.remove(filename)
 
 def main():
-    token = "8709764403:AAGYvZ6NAvB4IFI5UfVgJI8cH4uqfW7n4lA"
+    token = os.environ.get("BOT_TOKEN")
+    if not token:
+        print("يرجى ضبط متغير البيئة BOT_TOKEN")
+        return
     app = Application.builder().token(token).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
